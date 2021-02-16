@@ -6,6 +6,7 @@
 // CR pandaman: consider whether to #[instrument] non-fallible functions such as builders.
 // CR pandaman: implement nightly only functions?
 // CR pandaman: propose that #[instrument] can take parent parameter
+// https://github.com/tokio-rs/tracing/issues/879
 // CR pandaman: report to the rust-analyzer team the following:
 // 1. autocompleting a trait method signature removes attributes (such as #[instrument])
 // 2. autocompletion should show methods from the implementing trait
