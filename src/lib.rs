@@ -20,7 +20,9 @@
     trivial_casts
 )]
 // std does not have ones.
-#![allow(clippy::new_without_default)]
+#![allow(clippy::new_without_default, clippy::len_without_is_empty)]
+
+mod error;
 
 use std::{
     ffi, fmt, fs, io,
@@ -61,7 +63,7 @@ impl DirBuilder {
         // CR pandaman: consult doc for tracing::instrument to mimic the ordinary ordering
         #[instrument(skip(this), fields(self = ?this, path = ?path))]
         fn create(this: &DirBuilder, path: &Path) -> io::Result<()> {
-            this.inner.create(path)
+            this.inner.create(path).map_err(error::Error::wrap_std)
         }
 
         create(self, path.as_ref())
@@ -90,13 +92,19 @@ impl DirEntry {
     /// Wrapper for [`DirEntry::metadata`](std::fs::DirEntry::metadata).
     #[instrument]
     pub fn metadata(&self) -> io::Result<Metadata> {
-        self.inner.metadata().map(|inner| Metadata { inner })
+        self.inner
+            .metadata()
+            .map(|inner| Metadata { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`DirEntry::file_type`](std::fs::DirEntry::file_type).
     #[instrument]
     pub fn file_type(&self) -> io::Result<FileType> {
-        self.inner.file_type().map(|inner| FileType { inner })
+        self.inner
+            .file_type()
+            .map(|inner| FileType { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`DirEntry::file_name`](std::fs::DirEntry::file_name).
@@ -127,122 +135,138 @@ impl From<File> for process::Stdio {
 impl io::Read for File {
     #[instrument]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.inner.read(buf)
+        self.inner.read(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.inner.read_vectored(bufs)
+        self.inner
+            .read_vectored(bufs)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        self.inner.read_to_end(buf)
+        self.inner.read_to_end(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
-        self.inner.read_to_string(buf)
+        self.inner
+            .read_to_string(buf)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        self.inner.read_exact(buf)
+        self.inner.read_exact(buf).map_err(error::Error::wrap_std)
     }
 }
 
 impl io::Read for &File {
     #[instrument]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        (&self.inner).read(buf)
+        (&self.inner).read(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        (&self.inner).read_vectored(bufs)
+        (&self.inner)
+            .read_vectored(bufs)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        (&self.inner).read_to_end(buf)
+        (&self.inner)
+            .read_to_end(buf)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
-        (&self.inner).read_to_string(buf)
+        (&self.inner)
+            .read_to_string(buf)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        (&self.inner).read_exact(buf)
+        (&self.inner)
+            .read_exact(buf)
+            .map_err(error::Error::wrap_std)
     }
 }
 
 impl io::Seek for File {
     #[instrument]
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        self.inner.seek(pos)
+        self.inner.seek(pos).map_err(error::Error::wrap_std)
     }
 }
 
 impl io::Seek for &File {
     #[instrument]
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        (&self.inner).seek(pos)
+        (&self.inner).seek(pos).map_err(error::Error::wrap_std)
     }
 }
 
 impl io::Write for File {
     #[instrument]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.inner.write(buf)
+        self.inner.write(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn flush(&mut self) -> io::Result<()> {
-        self.inner.flush()
+        self.inner.flush().map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.inner.write_vectored(bufs)
+        self.inner
+            .write_vectored(bufs)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.inner.write_all(buf)
+        self.inner.write_all(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
-        self.inner.write_fmt(fmt)
+        self.inner.write_fmt(fmt).map_err(error::Error::wrap_std)
     }
 }
 
 impl io::Write for &File {
     #[instrument]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        (&self.inner).write(buf)
+        (&self.inner).write(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn flush(&mut self) -> io::Result<()> {
-        (&self.inner).flush()
+        (&self.inner).flush().map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        (&self.inner).write_vectored(bufs)
+        (&self.inner)
+            .write_vectored(bufs)
+            .map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        (&self.inner).write_all(buf)
+        (&self.inner).write_all(buf).map_err(error::Error::wrap_std)
     }
 
     #[instrument]
     fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
-        (&self.inner).write_fmt(fmt)
+        (&self.inner).write_fmt(fmt).map_err(error::Error::wrap_std)
     }
 }
 
@@ -251,7 +275,9 @@ impl File {
     pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         #[instrument]
         fn open(path: &Path) -> io::Result<File> {
-            fs::File::open(path).map(|inner| File { inner })
+            fs::File::open(path)
+                .map(|inner| File { inner })
+                .map_err(error::Error::wrap_std)
         }
 
         open(path.as_ref())
@@ -261,7 +287,9 @@ impl File {
     pub fn create<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         #[instrument]
         fn create(path: &Path) -> io::Result<File> {
-            fs::File::create(path).map(|inner| File { inner })
+            fs::File::create(path)
+                .map(|inner| File { inner })
+                .map_err(error::Error::wrap_std)
         }
 
         create(path.as_ref())
@@ -270,37 +298,45 @@ impl File {
     /// Wrapper for [`File::sync_all`](std::fs::File::sync_all).
     #[instrument]
     pub fn sync_all(&self) -> io::Result<()> {
-        self.inner.sync_all()
+        self.inner.sync_all().map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`File::sync_data`](std::fs::File::sync_data).
     #[instrument]
     pub fn sync_data(&self) -> io::Result<()> {
-        self.inner.sync_data()
+        self.inner.sync_data().map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`File::set_len`](std::fs::File::set_len),
     #[instrument]
     pub fn set_len(&self, size: u64) -> io::Result<()> {
-        self.inner.set_len(size)
+        self.inner.set_len(size).map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`File::metadata`](std::fs::File::metadata).
     #[instrument]
     pub fn metadata(&self) -> io::Result<Metadata> {
-        self.inner.metadata().map(|inner| Metadata { inner })
+        self.inner
+            .metadata()
+            .map(|inner| Metadata { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`File::try_clone`](std::fs::File::try_clone).
     #[instrument]
     pub fn try_clone(&self) -> io::Result<File> {
-        self.inner.try_clone().map(|inner| File { inner })
+        self.inner
+            .try_clone()
+            .map(|inner| File { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`File::set_permissions`](std::fs::File::set_permissions).
     #[instrument]
     pub fn set_permissions(&self, perm: Permissions) -> io::Result<()> {
-        self.inner.set_permissions(perm.inner)
+        self.inner
+            .set_permissions(perm.inner)
+            .map_err(error::Error::wrap_std)
     }
 }
 
@@ -382,19 +418,19 @@ impl Metadata {
     /// Wrapper for [`Metadata::modified`](std::fs::Metadata::modified).
     #[instrument]
     pub fn modified(&self) -> io::Result<time::SystemTime> {
-        self.inner.modified()
+        self.inner.modified().map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`Metadata::accessed`](std::fs::Metadata::accessed).
     #[instrument]
     pub fn accessed(&self) -> io::Result<time::SystemTime> {
-        self.inner.accessed()
+        self.inner.accessed().map_err(error::Error::wrap_std)
     }
 
     /// Wrapper for [`Metadata::created`](std::fs::Metadata::created).
     #[instrument]
     pub fn created(&self) -> io::Result<time::SystemTime> {
-        self.inner.created()
+        self.inner.created().map_err(error::Error::wrap_std)
     }
 }
 
@@ -460,7 +496,10 @@ impl OpenOptions {
     pub fn open<P: AsRef<Path>>(&self, path: P) -> io::Result<File> {
         #[instrument(skip(this), fields(self = ?this, path = ?path))]
         fn open(this: &OpenOptions, path: &Path) -> io::Result<File> {
-            this.inner.open(path).map(|inner| File { inner })
+            this.inner
+                .open(path)
+                .map(|inner| File { inner })
+                .map_err(error::Error::wrap_std)
         }
 
         open(self, path.as_ref())
@@ -508,10 +547,13 @@ impl fmt::Debug for ReadDir {
 impl Iterator for ReadDir {
     type Item = io::Result<DirEntry>;
 
+    #[instrument]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner
-            .next()
-            .map(|result| result.map(|inner| DirEntry { inner }))
+        self.inner.next().map(|result| {
+            result
+                .map(|inner| DirEntry { inner })
+                .map_err(error::Error::wrap_std)
+        })
     }
 }
 
@@ -519,7 +561,7 @@ impl Iterator for ReadDir {
 pub fn canonicalize<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
     #[instrument]
     fn canonicalize(path: &Path) -> io::Result<PathBuf> {
-        fs::canonicalize(path)
+        fs::canonicalize(path).map_err(error::Error::wrap_std)
     }
 
     canonicalize(path.as_ref())
@@ -535,7 +577,7 @@ pub fn copy<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<u64> {
             debug!("`from' and `to' point to the same file");
         }
 
-        fs::copy(from, to)
+        fs::copy(from, to).map_err(error::Error::wrap_std)
     }
 
     copy(from.as_ref(), to.as_ref())
@@ -545,7 +587,7 @@ pub fn copy<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<u64> {
 pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     #[instrument]
     fn create_dir(path: &Path) -> io::Result<()> {
-        fs::create_dir(path)
+        fs::create_dir(path).map_err(error::Error::wrap_std)
     }
 
     create_dir(path.as_ref())
@@ -555,7 +597,7 @@ pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub fn create_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
     #[instrument]
     fn create_dir_all(path: &Path) -> io::Result<()> {
-        fs::create_dir_all(path)
+        fs::create_dir_all(path).map_err(error::Error::wrap_std)
     }
 
     create_dir_all(path.as_ref())
@@ -565,7 +607,7 @@ pub fn create_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub fn hard_link<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
     #[instrument]
     fn hard_link(original: &Path, link: &Path) -> io::Result<()> {
-        fs::hard_link(original, link)
+        fs::hard_link(original, link).map_err(error::Error::wrap_std)
     }
 
     hard_link(original.as_ref(), link.as_ref())
@@ -575,7 +617,9 @@ pub fn hard_link<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Re
 pub fn metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
     #[instrument]
     fn metadata(path: &Path) -> io::Result<Metadata> {
-        fs::metadata(path).map(|inner| Metadata { inner })
+        fs::metadata(path)
+            .map(|inner| Metadata { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     metadata(path.as_ref())
@@ -585,7 +629,7 @@ pub fn metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
 pub fn read<P: AsRef<Path>>(path: P) -> io::Result<Vec<u8>> {
     #[instrument]
     fn read(path: &Path) -> io::Result<Vec<u8>> {
-        fs::read(path)
+        fs::read(path).map_err(error::Error::wrap_std)
     }
 
     read(path.as_ref())
@@ -595,7 +639,9 @@ pub fn read<P: AsRef<Path>>(path: P) -> io::Result<Vec<u8>> {
 pub fn read_dir<P: AsRef<Path>>(path: P) -> io::Result<ReadDir> {
     #[instrument]
     fn read_dir(path: &Path) -> io::Result<ReadDir> {
-        fs::read_dir(path).map(|inner| ReadDir { inner })
+        fs::read_dir(path)
+            .map(|inner| ReadDir { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     read_dir(path.as_ref())
@@ -605,7 +651,7 @@ pub fn read_dir<P: AsRef<Path>>(path: P) -> io::Result<ReadDir> {
 pub fn read_link<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
     #[instrument]
     fn read_link(path: &Path) -> io::Result<PathBuf> {
-        fs::read_link(path)
+        fs::read_link(path).map_err(error::Error::wrap_std)
     }
 
     read_link(path.as_ref())
@@ -615,7 +661,7 @@ pub fn read_link<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
 pub fn read_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
     #[instrument]
     fn read_to_string(path: &Path) -> io::Result<String> {
-        fs::read_to_string(path)
+        fs::read_to_string(path).map_err(error::Error::wrap_std)
     }
 
     read_to_string(path.as_ref())
@@ -625,7 +671,7 @@ pub fn read_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
 pub fn remove_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     #[instrument]
     fn remove_dir(path: &Path) -> io::Result<()> {
-        fs::remove_dir(path)
+        fs::remove_dir(path).map_err(error::Error::wrap_std)
     }
 
     remove_dir(path.as_ref())
@@ -635,7 +681,7 @@ pub fn remove_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub fn remove_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
     #[instrument]
     fn remove_dir_all(path: &Path) -> io::Result<()> {
-        fs::remove_dir_all(path)
+        fs::remove_dir_all(path).map_err(error::Error::wrap_std)
     }
 
     remove_dir_all(path.as_ref())
@@ -645,7 +691,7 @@ pub fn remove_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub fn remove_file<P: AsRef<Path>>(path: P) -> io::Result<()> {
     #[instrument]
     fn remove_file(path: &Path) -> io::Result<()> {
-        fs::remove_file(path)
+        fs::remove_file(path).map_err(error::Error::wrap_std)
     }
 
     remove_file(path.as_ref())
@@ -655,7 +701,7 @@ pub fn remove_file<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<()> {
     #[instrument]
     fn rename(from: &Path, to: &Path) -> io::Result<()> {
-        fs::rename(from, to)
+        fs::rename(from, to).map_err(error::Error::wrap_std)
     }
 
     rename(from.as_ref(), to.as_ref())
@@ -665,7 +711,7 @@ pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<()> 
 pub fn set_permissions<P: AsRef<Path>>(path: P, perm: Permissions) -> io::Result<()> {
     #[instrument]
     fn set_permissions(path: &Path, perm: Permissions) -> io::Result<()> {
-        fs::set_permissions(path, perm.inner)
+        fs::set_permissions(path, perm.inner).map_err(error::Error::wrap_std)
     }
 
     set_permissions(path.as_ref(), perm)
@@ -675,7 +721,9 @@ pub fn set_permissions<P: AsRef<Path>>(path: P, perm: Permissions) -> io::Result
 pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
     #[instrument]
     fn symlink_metadata(path: &Path) -> io::Result<Metadata> {
-        fs::symlink_metadata(path).map(|inner| Metadata { inner })
+        fs::symlink_metadata(path)
+            .map(|inner| Metadata { inner })
+            .map_err(error::Error::wrap_std)
     }
 
     symlink_metadata(path.as_ref())
@@ -685,7 +733,7 @@ pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
 pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> io::Result<()> {
     #[instrument]
     fn write(path: &Path, contents: &[u8]) -> io::Result<()> {
-        fs::write(path, contents)
+        fs::write(path, contents).map_err(error::Error::wrap_std)
     }
 
     write(path.as_ref(), contents.as_ref())
