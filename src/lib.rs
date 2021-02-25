@@ -20,6 +20,19 @@
 //! For more information, please visit [https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html](https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html).
 //!
 //! # Errors
+//! fs-tracing returns [`std::io::Error`](std::io::Error) on errors for compatibility, although
+//! the returned error contains the context information such as the kind of the operation and the
+//! values passed as arguments.
+//!
+//! For example, when you open a file which does not exist, the error message returned by fs-tracing
+//! prints the operation name (`fs_tracing::read`) and the offending path (`/not_exist`):
+//! ```text
+//! No such file or directory (os error 2)
+//! Trace:
+//!    0: fs_tracing::read
+//!            with path="/not_exist"
+//!              at src/lib.rs:652
+//! ```
 
 // CR pandaman: implement error wrapper
 // CR pandaman: consider whether to #[instrument] non-fallible functions such as builders.
