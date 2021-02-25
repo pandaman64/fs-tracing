@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["pandaman64 <kointosudesuyo@infoseek.jp>"]
 edition = "2018"
 
+description = "A drop-in replacement for std::fs which provides useful information on error"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pandaman64/fs-tracing"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

@@ -19,6 +19,8 @@
 //!
 //! For more information, please visit [https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html](https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html).
 //!
+//! Then, you can replace `std::fs` with `fs_tracing` in your code and you get nice error messages.
+//!
 //! # Errors
 //! fs-tracing returns [`std::io::Error`](std::io::Error) on errors for compatibility, although
 //! the returned error contains the context information such as the kind of the operation and the
