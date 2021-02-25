@@ -1,4 +1,23 @@
-//! fs-tracing is a drop-in replacement for [`std::fs`](std::fs).
+//! fs-tracing is a drop-in replacement for [`std::fs`](std::fs) that provides an auxiliary
+//! information (such as paths) on error via [`tracing`](https://github.com/tokio-rs/tracing).
+//!
+//! # Usage
+//! You need to install [`tracing_error::ErrorLayer`](https://docs.rs/tracing-error/0.1.2/tracing_error/struct.ErrorLayer.html)
+//! for capturing the error context. For example, the following function installs `ErrorLayer`.
+//!
+//! ```
+//! // https://docs.rs/tracing-error/0.1.2/tracing_error/index.html
+//! pub fn install() {
+//!     use tracing_error::ErrorLayer;
+//!     use tracing_subscriber::prelude::*;
+//!
+//!     let subscriber = tracing_subscriber::Registry::default().with(ErrorLayer::default());
+//!
+//!     tracing::subscriber::set_global_default(subscriber).unwrap();
+//! }
+//! ```
+//!
+//! For more information, please visit [https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html](https://docs.rs/tracing-subscriber/0.2.16/tracing_subscriber/registry/index.html).
 //!
 //! # Errors
 
@@ -7,6 +26,7 @@
 // CR pandaman: implement nightly only functions?
 // CR pandaman: propose that #[instrument] can take parent parameter
 // https://github.com/tokio-rs/tracing/issues/879
+// or, add them as a non-parent span?
 // CR pandaman: report to the rust-analyzer team the following:
 // 1. autocompleting a trait method signature removes attributes (such as #[instrument])
 // 2. autocompletion should show methods from the implementing trait
